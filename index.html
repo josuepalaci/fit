@@ -134,6 +134,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-vi
 .step[aria-pressed="true"] .box::after{content:"";position:absolute;left:6px;top:6px;width:12px;height:6px;border-left:3px solid var(--surface);border-bottom:3px solid var(--surface);transform:rotate(-45deg)}
 .step.small{min-height:48px}
 .scale{display:grid;gap:5px}
+.scale.s3{grid-template-columns:repeat(3,1fr)}
+.scale.s3 button{height:46px;font-size:14px}
 .scale.s5{grid-template-columns:repeat(5,1fr)}
 .scale.s10{grid-template-columns:repeat(10,1fr)}
 .scale button{height:42px;border-radius:10px;border:1px solid var(--line);background:none;font-weight:700;font-variant-numeric:tabular-nums;padding:0}
@@ -187,6 +189,16 @@ details .inner{padding:0 0 14px;display:flex;flex-direction:column;gap:10px;font
 
   <section id="sheet" class="sheet" aria-live="polite"></section>
 
+  <details id="levelBox">
+    <summary id="levelSum">Nivel</summary>
+    <div class="inner">
+      <div class="scale s3" id="levelBtns" role="group" aria-label="Nivel del plan"></div>
+      <p id="levelDesc"></p>
+      <p class="note" id="levelTip" hidden></p>
+      <p class="warn">Cambiar de nivel solo cambia los ejercicios, las vueltas y la caminata. Tu avance se conserva.</p>
+    </div>
+  </details>
+
   <details>
     <summary>Señales para parar</summary>
     <div class="inner">
@@ -224,56 +236,139 @@ var ART={
   birddog:svg('<path d="M4 57h56" opacity=".45"/><circle cx="11" cy="31" r="5"/><path d="M17 37h23M18 38l-2 18M40 37v19M40 38l19 1"/>'),
   camina:svg('<circle cx="30" cy="10" r="5"/><path d="M30 16l2 20M32 36l-9 20M32 36l10 18M30 22l-9 9M30 22l10 8"/><path d="M6 58h8M50 58h8" opacity=".45"/>'),
   movil:svg('<circle cx="32" cy="14" r="5"/><path d="M32 20v19M32 39l-6 18M32 39l6 18M32 25l-12-9M32 25l12-9"/><path d="M12 26a9 9 0 010-16M52 26a9 9 0 000-16" opacity=".7"/>'),
+  flexion:svg('<path d="M4 57h56" opacity=".45"/><circle cx="10" cy="32" r="5"/><path d="M16 36l38 14M16 36v21M54 50v7"/>'),
+  inclinada:svg('<path d="M4 57h56" opacity=".45"/><path d="M4 34h18v23" opacity=".55"/><circle cx="12" cy="16" r="5"/><path d="M18 20l34 30M18 20v10M52 50v7"/>'),
+  plancha:svg('<path d="M4 57h56" opacity=".45"/><circle cx="9" cy="34" r="5"/><path d="M15 38l39 12M15 38l3 19M54 50v7M10 57h14"/>'),
+  zancada:svg('<path d="M4 57h56" opacity=".45"/><circle cx="30" cy="9" r="5"/><path d="M30 15v21M30 36l-14 4v17M30 36l14 6 8 15M30 21l-8 10M30 21l8 10"/>'),
   descanso:svg('<path d="M38 12a19 19 0 1014 30A15 15 0 0138 12z"/><path d="M12 12h8l-8 9h8M26 6h5l-5 6h5" stroke-width="2.4" opacity=".7"/>')
 };
 
 /* ---------- contenido del plan ---------- */
-var WEEKS=[
-  {name:"Adaptación", fuerza:"Una sola vuelta. Movimientos lentos y cómodos.", walk:"8–10 min", habito:"Cumple el horario elegido, aunque hagas la versión mínima."},
-  {name:"Repetición", fuerza:"Una vuelta. Si acabas cómodo, añade 1–2 repeticiones por ejercicio.", walk:"10–12 min", habito:"Prepara la silla y la ropa la noche anterior."},
-  {name:"Construcción", fuerza:"Añade una segunda vuelta solo si te recuperas bien y el esfuerzo sigue en 5/10 o menos.", walk:"12–15 min", habito:"Registra cada sesión y cómo te sentiste."},
-  {name:"Consolidación", fuerza:"Mantén una o dos vueltas. Prioriza buena técnica, no velocidad.", walk:"15–20 min si lo toleras", habito:"Elige los días y horarios que continuarás el próximo mes."}
-];
-var EXTRA={name:"Mantenimiento", fuerza:"Mantén una o dos vueltas. Si te recuperas bien, añade 1–2 repeticiones o una tercera vuelta, sin pasar de 5/10 de esfuerzo.", walk:"15–20 min si lo toleras", habito:"Sigue con tus días y horarios. Revisa cada semana qué ajustar."};
-function wk(w){return w<WEEKS.length?WEEKS[w]:EXTRA;}
-var WARM=[
-  {n:"Marcha suave",d:"60 s",t:"Camina en el sitio sin levantar demasiado las rodillas."},
-  {n:"Hombros",d:"30 s",t:"Círculos suaves hacia delante y atrás."},
-  {n:"Tobillos y caderas",d:"60 s",t:"Alterna elevaciones de talones y pequeños movimientos de cadera."},
-  {n:"Sentarse y levantarse",d:"5 rep. lentas",t:"Desde una silla alta, solo si no duele."}
-];
-var RUT_A=[
-  {a:"silla",n:"Sentarse y levantarse de una silla",d:"6–10 rep.",t:"Silla firme contra la pared. Inclina un poco el tronco, levántate y vuelve despacio. Apóyate con las manos si hace falta."},
-  {a:"pared",n:"Flexiones contra la pared",d:"6–10 rep.",t:"Manos a la altura del pecho. Acerca el pecho a la pared y empuja sin arquear la espalda."},
-  {a:"puente",n:"Puente de glúteos",d:"8–12 rep.",t:"Boca arriba, rodillas flexionadas. Eleva la pelvis sin forzar la zona lumbar."},
-  {a:"talones",n:"Elevación de talones",d:"8–12 rep.",t:"De pie detrás de la silla, sube y baja los talones lentamente."}
-];
-var RUT_B=[
-  {a:"marcha",n:"Marcha sentado o de pie",d:"30–45 s",t:"Eleva los pies alternadamente a ritmo cómodo. Sujétate a una silla si lo necesitas."},
-  {a:"bisagra",n:"Bisagra de cadera",d:"8–10 rep.",t:"Manos en las caderas. Lleva la cadera hacia atrás con la espalda larga y vuelve a erguirte."},
-  {a:"birddog",n:"Bird-dog simplificado",d:"5 por lado",t:"A cuatro apoyos, desliza una pierna hacia atrás sin arquear la espalda. Alterna lados."},
-  {a:"pared",n:"Flexión contra la pared",d:"6–10 rep.",t:"Misma técnica que en la rutina A."}
-];
+var HABITOS=["Cumple el horario elegido, aunque hagas la versión mínima.","Prepara la silla y la ropa la noche anterior.","Registra cada sesión y cómo te sentiste.","Elige los días y horarios que continuarás el próximo mes."];
+var NOMBRES=["Adaptación","Repetición","Construcción","Consolidación"];
+function mkWeeks(f,walk,extra){
+  var out=f.map(function(t,i){return {name:NOMBRES[i],fuerza:t,walk:walk[i],habito:HABITOS[i]};});
+  out.push({name:"Mantenimiento",fuerza:extra,walk:walk[3],habito:"Sigue con tus días y horarios. Revisa cada semana qué ajustar."});
+  return out;
+}
+var LEVELS={
+ principiante:{
+  name:"Principiante",
+  desc:"Empezar o retomar con suavidad. Ejercicios de apoyo, una o dos vueltas y esfuerzo de 3 a 5 sobre 10.",
+  weeks:mkWeeks([
+    "Una sola vuelta. Movimientos lentos y cómodos.",
+    "Una vuelta. Si acabas cómodo, añade 1–2 repeticiones por ejercicio.",
+    "Añade una segunda vuelta solo si te recuperas bien y el esfuerzo sigue en 5/10 o menos.",
+    "Mantén una o dos vueltas. Prioriza buena técnica, no velocidad."],
+    ["8–10 min","10–12 min","12–15 min","15–20 min si lo toleras"],
+    "Mantén una o dos vueltas. Si te recuperas bien, añade 1–2 repeticiones, sin pasar de 5/10 de esfuerzo."),
+  effort:"Lo ideal es quedarte entre 3 y 5.", walkNote:"Esfuerzo 3–5 de 10: puedes hablar en frases.",
+  walkName:"Camina o marcha a ritmo cómodo", walkTip:"En casa, pasillo o patio. También puedes salir si el clima lo permite.",
+  rest:"Descansa 45–90 s entre ejercicios.", fuerzaDur:"12–20 min", movDur:"5–10 min",
+  warm:[
+    {n:"Marcha suave",d:"60 s",t:"Camina en el sitio sin levantar demasiado las rodillas."},
+    {n:"Hombros",d:"30 s",t:"Círculos suaves hacia delante y atrás."},
+    {n:"Tobillos y caderas",d:"60 s",t:"Alterna elevaciones de talones y pequeños movimientos de cadera."},
+    {n:"Sentarse y levantarse",d:"5 rep. lentas",t:"Desde una silla alta, solo si no duele."}],
+  A:[
+    {a:"silla",n:"Sentarse y levantarse de una silla",d:"6–10 rep.",t:"Silla firme contra la pared. Inclina un poco el tronco, levántate y vuelve despacio. Apóyate con las manos si hace falta."},
+    {a:"pared",n:"Flexiones contra la pared",d:"6–10 rep.",t:"Manos a la altura del pecho. Acerca el pecho a la pared y empuja sin arquear la espalda."},
+    {a:"puente",n:"Puente de glúteos",d:"8–12 rep.",t:"Boca arriba, rodillas flexionadas. Eleva la pelvis sin forzar la zona lumbar."},
+    {a:"talones",n:"Elevación de talones",d:"8–12 rep.",t:"De pie detrás de la silla, sube y baja los talones lentamente."}],
+  B:[
+    {a:"marcha",n:"Marcha sentado o de pie",d:"30–45 s",t:"Eleva los pies alternadamente a ritmo cómodo. Sujétate a una silla si lo necesitas."},
+    {a:"bisagra",n:"Bisagra de cadera",d:"8–10 rep.",t:"Manos en las caderas. Lleva la cadera hacia atrás con la espalda larga y vuelve a erguirte."},
+    {a:"birddog",n:"Bird-dog simplificado",d:"5 por lado",t:"A cuatro apoyos, desliza una pierna hacia atrás sin arquear la espalda. Alterna lados."},
+    {a:"pared",n:"Flexión contra la pared",d:"6–10 rep.",t:"Misma técnica que en la rutina A."}],
+  mov:[
+    {a:"movil",n:"Círculos de hombros",d:"30 s",t:"Suaves, hacia delante y atrás."},
+    {a:"talones",n:"Tobillos y caderas",d:"60 s",t:"Elevaciones de talones y pequeños movimientos de cadera."},
+    {a:"marcha",n:"Marcha suave",d:"2–3 min",t:"En el sitio, sin levantar demasiado las rodillas."}]
+ },
+ intermedio:{
+  name:"Intermedio",
+  desc:"Ya te mueves con regularidad. Menos apoyo, dos o tres vueltas, caminata más larga y esfuerzo de 4 a 6 sobre 10.",
+  weeks:mkWeeks([
+    "Dos vueltas. Descansa 45 s entre ejercicios y controla la bajada.",
+    "Dos vueltas. Añade 1–2 repeticiones por ejercicio si acabas con margen.",
+    "Tres vueltas solo si te recuperas bien. Si no, quédate en dos y sube las repeticiones.",
+    "Dos o tres vueltas. Baja en 3 segundos y busca la mejor técnica."],
+    ["15–20 min","20–25 min","25–30 min","30 min"],
+    "Dos o tres vueltas. Sube repeticiones o pausas antes de añadir más vueltas, sin pasar de 6/10 de esfuerzo."),
+  effort:"Lo ideal es quedarte entre 4 y 6.", walkNote:"Esfuerzo 4–6 de 10: puedes hablar, pero en frases cortas.",
+  walkName:"Camina a paso ligero", walkTip:"Alterna 3 min a paso ligero con 1 min más suave. En casa, patio o en la calle.",
+  rest:"Descansa 30–60 s entre ejercicios.", fuerzaDur:"20–30 min", movDur:"8–12 min",
+  warm:[
+    {n:"Marcha con rodillas arriba",d:"90 s",t:"Sube las rodillas a la altura de la cadera y balancea los brazos."},
+    {n:"Hombros",d:"30 s",t:"Círculos amplios hacia delante y atrás."},
+    {n:"Cadera y tobillos",d:"60 s",t:"Círculos de cadera y elevaciones de talones."},
+    {n:"Sentadillas lentas",d:"6 rep.",t:"Sin peso, bajando en 3 segundos."}],
+  A:[
+    {a:"silla",n:"Sentadilla a la silla, sin manos",d:"10–15 rep.",t:"Brazos cruzados al pecho. Toca la silla sin dejarte caer y sube. Baja en 3 segundos."},
+    {a:"inclinada",n:"Flexiones inclinadas",d:"6–10 rep.",t:"Manos en una mesa o sofá firme. Cuerpo en línea recta, baja el pecho al borde y empuja."},
+    {a:"puente",n:"Puente de glúteos con pausa",d:"10–15 rep.",t:"Sube la pelvis y mantén 2 segundos arriba. Baja con control."},
+    {a:"zancada",n:"Zancada atrás con apoyo",d:"6–10 por pierna",t:"Una mano en una silla. Da un paso atrás, baja la rodilla sin tocar el suelo y vuelve."}],
+  B:[
+    {a:"marcha",n:"Elevación de rodillas de pie",d:"30–45 s",t:"Sube las rodillas a buen ritmo, sin saltar. Brazos activos."},
+    {a:"bisagra",n:"Bisagra de cadera con peso",d:"10–12 rep.",t:"Sostén una mochila con libros pegada al pecho. Cadera atrás, espalda larga, y vuelve a erguirte."},
+    {a:"birddog",n:"Bird-dog con pausa",d:"8 por lado",t:"Estira brazo y pierna contrarios, mantén 2 segundos sin mover la cadera. Alterna."},
+    {a:"plancha",n:"Plancha apoyando las rodillas",d:"20–30 s",t:"Antebrazos en el suelo, cuerpo recto de rodillas a cabeza. Respira sin aguantar el aire."}],
+  mov:[
+    {a:"movil",n:"Círculos de hombros",d:"45 s",t:"Amplios y lentos, hacia delante y atrás."},
+    {a:"talones",n:"Cadera y tobillos",d:"90 s",t:"Círculos de cadera y elevaciones de talones."},
+    {a:"marcha",n:"Marcha con rodillas arriba",d:"3–4 min",t:"A ritmo cómodo, brazos sueltos."}]
+ },
+ experto:{
+  name:"Experto",
+  desc:"Entrenas con constancia y buena técnica. Ejercicios más exigentes, tres vueltas, caminata rápida o trote suave y esfuerzo de 5 a 7 sobre 10.",
+  weeks:mkWeeks([
+    "Tres vueltas. Descansa 30–45 s entre ejercicios y baja en 3 segundos.",
+    "Tres vueltas. Añade 2 repeticiones por ejercicio o 5 segundos de pausa.",
+    "Tres o cuatro vueltas. Solo sube a cuatro si la técnica no se deteriora.",
+    "Semana de descarga: dos vueltas con la mejor técnica para recuperar y consolidar."],
+    ["25–30 min","30–35 min","35–40 min","30 min"],
+    "Tres vueltas. Cada dos semanas sube repeticiones o carga y alterna una semana de descarga. Esfuerzo hasta 7/10."),
+  effort:"Lo ideal es quedarte entre 5 y 7.", walkNote:"Esfuerzo 5–7 de 10: respiras fuerte y solo dices frases cortas.",
+  walkName:"Camina rápido o trota suave", walkTip:"Intervalos: 1 min rápido (o trote suave) y 2 min a paso cómodo. Si trotas, empieza con 30 s.",
+  rest:"Descansa 30–45 s entre ejercicios.", fuerzaDur:"25–35 min", movDur:"10–15 min",
+  warm:[
+    {n:"Marcha con rodillas arriba",d:"2 min",t:"Sube el ritmo poco a poco hasta sentir calor."},
+    {n:"Hombros y espalda alta",d:"60 s",t:"Círculos amplios y apertura de brazos."},
+    {n:"Cadera y tobillos",d:"90 s",t:"Círculos de cadera, elevaciones de talones y sentadilla asistida."},
+    {n:"Sentadillas lentas",d:"8 rep.",t:"Bajando en 3 segundos, sin peso."}],
+  A:[
+    {a:"silla",n:"Sentadilla con peso",d:"10–15 rep.",t:"Mochila con libros contra el pecho. Baja en 3 segundos hasta tocar la silla y sube con fuerza."},
+    {a:"flexion",n:"Flexiones en el suelo",d:"8–15 rep.",t:"Manos bajo los hombros, cuerpo en línea. Si no llegas, apoya las rodillas en las últimas repeticiones."},
+    {a:"puente",n:"Puente a una pierna",d:"8–12 por lado",t:"Una pierna estirada y la otra apoyada. Sube la pelvis sin girarla y baja con control."},
+    {a:"zancada",n:"Zancadas alternas",d:"8–12 por pierna",t:"Paso largo, rodilla trasera cerca del suelo, tronco erguido. Empuja con el talón delantero."}],
+  B:[
+    {a:"bisagra",n:"Peso muerto rumano con mochila",d:"10–15 rep.",t:"Mochila cerca de las piernas. Cadera atrás, espalda neutra, baja hasta media espinilla y sube."},
+    {a:"plancha",n:"Plancha",d:"30–45 s",t:"Antebrazos y puntas de los pies. Glúteos y abdomen firmes, cuerpo recto."},
+    {a:"birddog",n:"Bird-dog con codo a rodilla",d:"8 por lado",t:"Estira brazo y pierna contrarios y junta codo y rodilla bajo el cuerpo. Sin balancear la cadera."},
+    {a:"bisagra",n:"Remo inclinado con mochila",d:"10–12 rep.",t:"Torso inclinado con espalda larga. Lleva la mochila hacia la cintura juntando los omóplatos."}],
+  mov:[
+    {a:"movil",n:"Movilidad de hombros y espalda alta",d:"60 s",t:"Círculos amplios y apertura de brazos."},
+    {a:"talones",n:"Cadera y tobillos",d:"90 s",t:"Sentadilla profunda asistida, apoyado en una silla, y elevaciones de talones."},
+    {a:"marcha",n:"Marcha o trote suave",d:"4–5 min",t:"Ritmo cómodo para soltar las piernas."}]
+ }
+};
+function LV(){return LEVELS[state.level]||LEVELS.principiante;}
+function wk(w){var L=LV().weeks;return w<4?L[w]:L[4];}
 var DOW=["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
 var MES=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 var PREGUNTAS=["¿Qué día y horario me resultó más fácil?","¿Qué ejercicio se sintió más cómodo y cuál debo adaptar?","¿Mi energía se mantuvo, mejoró o empeoró?","¿Qué obstáculo apareció y cómo lo hago más fácil la próxima semana?"];
 
 function plan(i){
-  var w=Math.floor(i/7), d=i%7, W=wk(w);
+  var L=LV(),w=Math.floor(i/7), d=i%7, W=wk(w);
   var walkSteps=[
-    {a:"camina",n:"Camina o marcha a ritmo cómodo",d:W.walk,t:"En casa, pasillo o patio. También puedes salir si el clima lo permite."},
+    {a:"camina",n:L.walkName,d:W.walk,t:L.walkTip},
     {a:"movil",n:"Vuelta a la calma",d:"2–3 min",t:"Baja el ritmo y respira con calma. Sin estiramientos dolorosos."}
   ];
-  var movSteps=[
-    {a:"movil",n:"Círculos de hombros",d:"30 s",t:"Suaves, hacia delante y atrás."},
-    {a:"talones",n:"Tobillos y caderas",d:"60 s",t:"Elevaciones de talones y pequeños movimientos de cadera."},
-    {a:"marcha",n:"Marcha suave",d:"2–3 min",t:"En el sitio, sin levantar demasiado las rodillas."}
-  ];
   switch(d){
-    case 0: return {type:"fuerza",tag:"Fza A",art:"silla",title:"Rutina de fuerza A",dur:"12–20 min",note:W.fuerza,warm:true,steps:RUT_A,rest:"Descansa 45–90 s entre ejercicios."};
-    case 3: return {type:"fuerza",tag:"Fza B",art:"bisagra",title:"Rutina de fuerza B",dur:"12–20 min",note:W.fuerza,warm:true,steps:RUT_B,rest:"Descansa 45–90 s entre ejercicios."};
-    case 1: case 4: return {type:"camina",tag:"Camina",art:"camina",title:"Caminata o marcha suave",dur:W.walk,note:"Esfuerzo 3–5 de 10: puedes hablar en frases.",steps:walkSteps};
-    case 2: return {type:"movil",tag:"Movil.",art:"movil",title:"Movilidad o descanso",dur:"5–10 min",note:"Día suave. Si prefieres descansar, márcalo como hecho igual.",steps:movSteps};
+    case 0: return {type:"fuerza",tag:"Fza A",art:"silla",title:"Rutina de fuerza A",dur:L.fuerzaDur,note:W.fuerza,warm:true,steps:L.A,rest:L.rest};
+    case 3: return {type:"fuerza",tag:"Fza B",art:"bisagra",title:"Rutina de fuerza B",dur:L.fuerzaDur,note:W.fuerza,warm:true,steps:L.B,rest:L.rest};
+    case 1: case 4: return {type:"camina",tag:"Camina",art:"camina",title:"Caminata o marcha suave",dur:W.walk,note:L.walkNote,steps:walkSteps};
+    case 2: return {type:"movil",tag:"Movil.",art:"movil",title:"Movilidad o descanso",dur:L.movDur,note:"Día suave. Si prefieres descansar, márcalo como hecho igual.",steps:L.mov};
     case 5:
       if(w>=2) return {type:"camina",tag:"Opc.",art:"camina",title:w===3?"Tercera caminata de la semana":"Caminata extra (opcional)",dur:W.walk,note:w===3?"Esta semana la meta son 3 días de caminata, si lo toleras.":"Esta semana puedes hacer 2 o 3 días de caminata.",steps:walkSteps};
       return {type:"movil",tag:"Opc.",art:"camina",title:"Paseo agradable o movilidad",dur:"10–20 min, opcional",note:"Elige lo que te apetezca. Es opcional.",steps:[{a:"camina",n:"Paseo tranquilo",d:"10–20 min",t:"A ritmo de conversación."},{a:"movil",n:"O movilidad suave",d:"5–10 min",t:"Hombros, tobillos, caderas y marcha en el sitio."}]};
@@ -288,9 +383,9 @@ function mondayOf(dt){var d=new Date(dt.getFullYear(),dt.getMonth(),dt.getDate()
 function iso(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function parseIso(s){var p=String(s).split("-");var d=new Date(+p[0],+p[1]-1,+p[2]);return isNaN(d)?null:d;}
 function load(){
-  try{var raw=localStorage.getItem(KEY);if(raw){var o=JSON.parse(raw);if(o&&typeof o==="object"){o.days=o.days||{};o.notes=o.notes||{};o.weeks=Math.max(4,Math.min(52,+o.weeks||4));if(!parseIso(o.start))o.start=iso(mondayOf(new Date()));return o;}}}
+  try{var raw=localStorage.getItem(KEY);if(raw){var o=JSON.parse(raw);if(o&&typeof o==="object"){o.days=o.days||{};o.notes=o.notes||{};o.weeks=Math.max(4,Math.min(52,+o.weeks||4));if(!LEVELS[o.level])o.level="principiante";if(!parseIso(o.start))o.start=iso(mondayOf(new Date()));return o;}}}
   catch(e){storeOK=false;}
-  return {start:iso(mondayOf(new Date())),days:{},notes:{},weeks:4};
+  return {start:iso(mondayOf(new Date())),days:{},notes:{},weeks:4,level:"principiante"};
 }
 function save(){
   try{localStorage.setItem(KEY,JSON.stringify(state));storeOK=true;}catch(e){storeOK=false;}
@@ -372,7 +467,7 @@ function renderSheet(){
   }else{
     if(p.warm){
       h+='<div class="block"><h3>Calentamiento · 3–4 min</h3><ul class="steps">';
-      WARM.forEach(function(s,k){h+=stepBtn("w"+k,s,!!steps["w"+k],true);});
+      LV().warm.forEach(function(s,k){h+=stepBtn("w"+k,s,!!steps["w"+k],true);});
       h+='</ul></div>';
     }
     if(p.steps.length){
@@ -387,7 +482,7 @@ function renderSheet(){
   }else{
     h+='<button type="button" class="ghost" data-min aria-pressed="'+!!st.min+'">'+(st.min?"Volver a la sesión completa":"Poca energía hoy: ver versión mínima de 5 min")+'</button>';
     h+='<div class="block"><h3>Energía antes</h3>'+scale("energy",5,st.energy)+'<p class="hint">1 muy baja · 5 muy alta</p></div>';
-    h+='<div class="block"><h3>Esfuerzo</h3>'+scale("effort",10,st.effort)+'<p class="hint">Lo ideal es quedarte entre 3 y 5.</p></div>';
+    h+='<div class="block"><h3>Esfuerzo</h3>'+scale("effort",10,st.effort)+'<p class="hint">'+LV().effort+'</p></div>';
   }
   h+='<button type="button" class="cta'+(st.done?" is-done":"")+'" data-done>'+(st.done?"Hecho. Tocar para desmarcar":(p.type==="descanso"?"Marcar descanso cumplido":"Marcar día como hecho"))+'</button>';
   sheet.innerHTML=h;
@@ -403,7 +498,7 @@ sheet.addEventListener("click",function(e){
   else if("min" in b.dataset){st.min=!st.min;}
   else if("done" in b.dataset){st.done=!st.done;}
   else return;
-  save();renderCal();renderSheet();
+  save();renderCal();renderSheet();renderLevel();
 });
 
 document.getElementById("prevBtn").addEventListener("click",function(){if(page>0){page--;renderCal();}});
@@ -411,6 +506,31 @@ document.getElementById("nextBtn").addEventListener("click",function(){if(page<M
 document.getElementById("moreBtn").addEventListener("click",function(){
   var first=total();state.weeks+=4;save();sel=first;page=Math.floor(first/28);renderCal();renderSheet();
   sheet.scrollIntoView({behavior:"smooth",block:"start"});
+});
+
+/* ---------- nivel ---------- */
+var LKEYS=["principiante","intermedio","experto"];
+function suggestion(){
+  var rec=[];
+  for(var i=0;i<total();i++){var st=state.days[i];if(st&&st.done&&st.effort&&plan(i).type!=="descanso")rec.push(st.effort);}
+  rec=rec.slice(-6);
+  if(rec.length<4)return "";
+  var avg=rec.reduce(function(a,b){return a+b;},0)/rec.length,k=LKEYS.indexOf(state.level),m=avg.toFixed(1).replace(".",",");
+  if(avg<=3&&k<2)return "Tus últimas "+rec.length+" sesiones tuvieron un esfuerzo medio de "+m+" sobre 10. Se sienten fáciles: considera subir a "+LEVELS[LKEYS[k+1]].name+".";
+  if(avg>=8&&k>0)return "Tus últimas "+rec.length+" sesiones tuvieron un esfuerzo medio de "+m+" sobre 10. Es mucho: considera bajar a "+LEVELS[LKEYS[k-1]].name+".";
+  return "";
+}
+function renderLevel(){
+  var L=LV(),tip=suggestion(),h="";
+  LKEYS.forEach(function(k){h+='<button type="button" data-level="'+k+'" aria-pressed="'+(k===state.level)+'">'+LEVELS[k].name+'</button>';});
+  document.getElementById("levelBtns").innerHTML=h;
+  document.getElementById("levelSum").textContent="Nivel: "+L.name+(tip?" · hay una sugerencia":"");
+  document.getElementById("levelDesc").textContent=L.desc;
+  var t=document.getElementById("levelTip");t.hidden=!tip;t.textContent=tip;
+}
+document.getElementById("levelBtns").addEventListener("click",function(e){
+  var b=e.target.closest("button");if(!b||!b.dataset.level)return;
+  state.level=b.dataset.level;save();renderCal();renderSheet();renderLevel();
 });
 
 /* ---------- ajustes ---------- */
@@ -429,7 +549,7 @@ resetBtn.addEventListener("click",function(){
   state.days={};state.notes={};state.weeks=4;sel=firstPending();page=0;save();renderCal();renderSheet();
 });
 
-renderCal();renderSheet();save();
+renderCal();renderSheet();renderLevel();save();
 
 /* ---------- sin internet ---------- */
 if(navigator.storage&&navigator.storage.persist){navigator.storage.persist().catch(function(){});}
