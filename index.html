@@ -100,6 +100,12 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-vi
 .t-camina{--tc:var(--camina);--tbg:var(--camina-bg);--tx:var(--camina-tx)}
 .t-movil{--tc:var(--movil);--tbg:var(--movil-bg);--tx:var(--movil-tx)}
 .t-descanso{--tc:var(--descanso);--tbg:var(--descanso-bg);--tx:var(--descanso-tx)}
+.pager{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pager[hidden]{display:none}
+.pager span{font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
+.pager button{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:none;display:grid;place-items:center;padding:0}
+.pager button svg{width:22px;height:22px}
+.pager button:disabled{opacity:.35;cursor:default}
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);font-weight:600}
 .legend span{display:flex;align-items:center;gap:5px}
 .legend i{width:10px;height:10px;border-radius:3px;background:var(--tc)}
@@ -162,6 +168,11 @@ details .inner{padding:0 0 14px;display:flex;flex-direction:column;gap:10px;font
   </header>
 
   <section class="cal" aria-label="Calendario del plan">
+    <div class="pager" id="pager" hidden>
+      <button type="button" id="prevBtn" aria-label="Ver las 4 semanas anteriores"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <span id="pageLbl" aria-live="polite"></span>
+      <button type="button" id="nextBtn" aria-label="Ver las 4 semanas siguientes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+    </div>
     <div class="dow" aria-hidden="true"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
     <div id="weeks"></div>
     <div class="legend">
@@ -292,13 +303,15 @@ function dateOf(i){var d=parseIso(state.start);d.setDate(d.getDate()+i);return d
 function todayIndex(){var s=parseIso(state.start),t=new Date();t=new Date(t.getFullYear(),t.getMonth(),t.getDate());var n=Math.round((t-s)/864e5);return n>=0&&n<total()?n:-1;}
 function firstPending(){for(var i=0;i<total();i++){if(!(state.days[i]&&state.days[i].done))return i;}return total()-1;}
 var sel=todayIndex()>=0?todayIndex():firstPending();
+var page=Math.floor(sel/28);
 
 /* ---------- calendario ---------- */
 var weeksEl=document.getElementById("weeks");
 weeksEl.style.cssText="display:flex;flex-direction:column;gap:12px";
 function renderCal(){
   var ti=todayIndex(),html="",done=0;
-  for(var w=0;w<state.weeks;w++){
+  var w0=page*4,w1=Math.min(state.weeks,w0+4);
+  for(var w=w0;w<w1;w++){
     var cnt=0,cells="";
     for(var d=0;d<7;d++){
       var i=w*7+d,p=plan(i),st=state.days[i]||{},dt=dateOf(i);
@@ -315,6 +328,11 @@ function renderCal(){
   document.getElementById("title").textContent="Plan de "+state.weeks+" semanas";
   document.getElementById("barFill").style.width=(done/T*100)+"%";
   var bar=document.getElementById("bar");bar.setAttribute("aria-valuenow",done);bar.setAttribute("aria-valuemax",T);
+  var pages=Math.ceil(state.weeks/4);
+  document.getElementById("pager").hidden=pages<2;
+  document.getElementById("pageLbl").textContent="Semanas "+(w0+1)+"–"+w1;
+  document.getElementById("prevBtn").disabled=page===0;
+  document.getElementById("nextBtn").disabled=page>=pages-1;
   var more=document.getElementById("moreBtn");
   more.hidden=!all;
   if(all&&state.weeks<52)more.textContent="¡Completaste las "+state.weeks+" semanas! Seguir 4 semanas más";
@@ -388,8 +406,10 @@ sheet.addEventListener("click",function(e){
   save();renderCal();renderSheet();
 });
 
+document.getElementById("prevBtn").addEventListener("click",function(){if(page>0){page--;renderCal();}});
+document.getElementById("nextBtn").addEventListener("click",function(){if(page<Math.ceil(state.weeks/4)-1){page++;renderCal();}});
 document.getElementById("moreBtn").addEventListener("click",function(){
-  var first=total();state.weeks+=4;save();sel=first;renderCal();renderSheet();
+  var first=total();state.weeks+=4;save();sel=first;page=Math.floor(first/28);renderCal();renderSheet();
   sheet.scrollIntoView({behavior:"smooth",block:"start"});
 });
 
@@ -399,14 +419,14 @@ startInput.value=state.start;
 startInput.addEventListener("change",function(){
   var d=parseIso(startInput.value);if(!d){startInput.value=state.start;return;}
   state.start=iso(mondayOf(d));startInput.value=state.start;save();
-  if(todayIndex()>=0)sel=todayIndex();
+  if(todayIndex()>=0){sel=todayIndex();page=Math.floor(sel/28);}
   renderCal();renderSheet();
 });
 var resetBtn=document.getElementById("resetBtn"),armed=false,armT;
 resetBtn.addEventListener("click",function(){
   if(!armed){armed=true;resetBtn.textContent="¿Seguro? Toca otra vez para borrar";armT=setTimeout(function(){armed=false;resetBtn.textContent="Borrar todo el avance";},4000);return;}
   clearTimeout(armT);armed=false;resetBtn.textContent="Borrar todo el avance";
-  state.days={};state.notes={};state.weeks=4;save();renderCal();renderSheet();
+  state.days={};state.notes={};state.weeks=4;sel=firstPending();page=0;save();renderCal();renderSheet();
 });
 
 renderCal();renderSheet();save();
