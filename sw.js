@@ -1,6 +1,6 @@
 /* Service worker: guarda todo al instalar y sirve desde caché, así funciona sin internet.
    Al cambiar cualquier archivo, sube el número de VERSION para que los teléfonos se actualicen. */
-var VERSION = "rutina-v6";
+var VERSION = "rutina-v7";
 var FILES = [
   "./",
   "./index.html",
@@ -9,7 +9,8 @@ var FILES = [
   "./fonts/figtree.woff2",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
-  "./icons/apple-touch-icon.png"
+  "./icons/apple-touch-icon.png",
+  "./icons/favicon-32.png"
 ];
 
 self.addEventListener("install", function (e) {

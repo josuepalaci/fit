@@ -3,12 +3,28 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Rutina en casa 4 semanas</title>
-<meta name="description" content="Plan de 4 semanas para hacer en casa. Funciona sin internet.">
+<title>Rutina en casa · Plan de 4 semanas</title>
+<meta name="description" content="Plan de ejercicio en casa para 4 semanas, con niveles, cronómetro y seguimiento de tu avance. Funciona sin internet.">
+<link rel="canonical" href="https://josuepalaci.github.io/fit/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="es_MX">
+<meta property="og:site_name" content="Rutina en casa">
+<meta property="og:title" content="Rutina en casa · Plan de 4 semanas">
+<meta property="og:description" content="Fuerza, caminata y movilidad para hacer en casa, con niveles, cronómetro y seguimiento. Funciona sin internet.">
+<meta property="og:url" content="https://josuepalaci.github.io/fit/">
+<meta property="og:image" content="https://josuepalaci.github.io/fit/icons/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Figura de una persona haciendo ejercicio sobre fondo verde azulado, con el texto Rutina en casa">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Rutina en casa · Plan de 4 semanas">
+<meta name="twitter:description" content="Fuerza, caminata y movilidad para hacer en casa. Funciona sin internet.">
+<meta name="twitter:image" content="https://josuepalaci.github.io/fit/icons/og.png">
 <meta name="theme-color" content="#eef3f4" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0c1a1f" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -73,9 +89,16 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-vi
 
 /* cabecera y progreso */
 .top{display:flex;flex-direction:column;gap:10px}
-.top-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.top-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.top-row h1{flex:1}
 .count{font-variant-numeric:tabular-nums;color:var(--muted);font-weight:600;white-space:nowrap}
 .count b{color:var(--ink);font-size:20px;font-family:var(--font-display)}
+.refresh{flex:none;width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--muted);display:grid;place-items:center;padding:0}
+.refresh svg{width:22px;height:22px}
+.refresh.busy svg{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;left:50%;bottom:max(20px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:60;max-width:min(92vw,420px);background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:12px;font-weight:600;font-size:15px;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.toast[hidden]{display:none}
 .bar{height:10px;border-radius:99px;background:var(--line);overflow:hidden}
 .bar i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .3s}
 
@@ -180,7 +203,7 @@ details .inner{padding:0 0 14px;display:flex;flex-direction:column;gap:10px;font
 @media (hover:hover){.day:hover:not(.sel){border-color:var(--line)}.step:hover:not([aria-pressed="true"]),.ghost:hover,.scale button:hover:not([aria-pressed="true"]){background:var(--bg)}.cta:hover{filter:brightness(1.08)}}
 .day,.step,.scale button,.cta,.ghost{transition:background-color .15s,border-color .15s,transform .15s cubic-bezier(.22,1,.36,1)}
 .day:active,.step:active,.cta:active,.ghost:active{transform:scale(.98)}
-@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}.refresh.busy svg{animation:none}}
 </style>
 </head>
 <body>
@@ -189,6 +212,7 @@ details .inner{padding:0 0 14px;display:flex;flex-direction:column;gap:10px;font
     <div class="top-row">
       <h1 id="title">Plan de 4 semanas</h1>
       <div class="count"><b id="doneN">0</b> de <span id="totalN">28</span> días</div>
+      <button type="button" class="refresh" id="refreshBtn" aria-label="Actualizar la app (borra la copia guardada y la descarga de nuevo)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 10-2.3 5.7M20 4v7h-7"/></svg></button>
     </div>
     <div class="bar" role="progressbar" aria-label="Avance del plan" aria-valuemin="0" aria-valuemax="28" aria-valuenow="0" id="bar"><i id="barFill" style="width:0%"></i></div>
   </header>
@@ -243,6 +267,8 @@ details .inner{padding:0 0 14px;display:flex;flex-direction:column;gap:10px;font
     </div>
   </details>
 </main>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
 <div id="timer" class="timer" role="dialog" aria-modal="true" aria-labelledby="tName" hidden>
   <button type="button" class="t-close" id="tClose" aria-label="Cerrar cronómetro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -675,6 +701,26 @@ resetBtn.addEventListener("click",function(){
 });
 
 renderCal();renderSheet();renderLevel();save();
+
+/* ---------- actualizar ---------- */
+var toastEl=document.getElementById("toast"),toastT;
+function toast(msg){toastEl.textContent=msg;toastEl.hidden=false;clearTimeout(toastT);toastT=setTimeout(function(){toastEl.hidden=true;},3500);}
+var APP_FILES=["./","index.html","manifest.webmanifest","fonts/bricolage.woff2","fonts/figtree.woff2","icons/icon-192.png","icons/icon-512.png","icons/apple-touch-icon.png"];
+var refreshBtn=document.getElementById("refreshBtn");
+refreshBtn.addEventListener("click",function(){
+  if(refreshBtn.classList.contains("busy"))return;
+  if(navigator.onLine===false){toast("Sin internet: no se puede actualizar ahora.");return;}
+  refreshBtn.classList.add("busy");
+  /* 1) comprobar que hay conexión y traer archivos frescos, saltando la caché del navegador */
+  Promise.all(APP_FILES.map(function(f){return fetch(f,{cache:"reload"}).then(function(r){if(!r.ok)throw new Error(f);});}))
+  .then(function(){
+    /* 2) solo si todo bajó bien, borrar la copia guardada y recargar. El avance (localStorage) no se toca */
+    return (navigator.serviceWorker?navigator.serviceWorker.getRegistrations():Promise.resolve([])).then(function(rs){return Promise.all(rs.map(function(r){return r.unregister();}));})
+      .then(function(){return window.caches?caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k);}));}):null;});
+  })
+  .then(function(){toast("Actualizada. Recargando…");setTimeout(function(){location.reload();},400);})
+  .catch(function(){refreshBtn.classList.remove("busy");toast("No se pudo actualizar. Revisa tu conexión e inténtalo de nuevo.");});
+});
 
 /* ---------- sin internet ---------- */
 if(navigator.storage&&navigator.storage.persist){navigator.storage.persist().catch(function(){});}
