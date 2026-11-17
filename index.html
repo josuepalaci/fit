@@ -405,6 +405,7 @@ var weeksEl=document.getElementById("weeks");
 weeksEl.style.cssText="display:flex;flex-direction:column;gap:12px";
 function renderCal(){
   var ti=todayIndex(),html="",done=0;
+  for(var j=0;j<total();j++){if(state.days[j]&&state.days[j].done)done++;}
   var w0=page*4,w1=Math.min(state.weeks,w0+4);
   for(var w=w0;w<w1;w++){
     var cnt=0,cells="";
@@ -413,7 +414,6 @@ function renderCal(){
       if(st.done)cnt++;
       cells+='<button type="button" class="day t-'+p.type+(st.done?" done":"")+(i===sel?" sel":"")+(i===ti?" today":"")+'" data-i="'+i+'" aria-pressed="'+(i===sel)+'" aria-label="'+DOW[d]+" "+dt.getDate()+" de "+MES[dt.getMonth()]+", "+p.title+(st.done?", hecho":"")+(i===ti?", hoy":"")+'"><span class="num">'+dt.getDate()+'</span><span class="tag">'+p.tag+'</span></button>';
     }
-    done+=cnt;
     html+='<div class="week"><div class="week-head"><span>Semana '+(w+1)+" · "+wk(w).name+'</span><span>'+cnt+'/7</span></div><div class="week-grid">'+cells+'</div></div>';
   }
   weeksEl.innerHTML=html;
