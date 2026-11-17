@@ -1,6 +1,6 @@
 /* Service worker: guarda todo al instalar y sirve desde caché, así funciona sin internet.
    Al cambiar cualquier archivo, sube el número de VERSION para que los teléfonos se actualicen. */
-var VERSION = "rutina-v5";
+var VERSION = "rutina-v6";
 var FILES = [
   "./",
   "./index.html",
