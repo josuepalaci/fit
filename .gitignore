@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+
+# Herramientas locales (configuración de Claude / Impeccable, servidores de prueba)
+.claude/
+.impeccable/
+
+# Editores
+.vscode/
+.idea/
+
+# Archivos temporales
+*.log
+*.tmp
